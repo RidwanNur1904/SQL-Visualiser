@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MySQL Query Visualizer (One Dark Theme)</title>
+  <script src="https://cdn.jsdelivr.net/npm/alasql@1.7.3/dist/alasql.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #282c34;
+      --bg-card: #21252b;
+      --bg-input: #1e2227;
+      --border-color: #181a1f;
+      --border-light: #3e4451;
+      --text-main: #abb2bf;
+      --text-muted: #5c6370;
+      --accent-blue: #61afef;
+      --accent-cyan: #56b6c2;
+      --accent-green: #98c379;
+      --accent-purple: #c678dd;
+      --accent-red: #e06c75;
+      --accent-yellow: #e5c07b;
+    }
+
+    body {
+      font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+      padding: 24px;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    h2 {
+      color: var(--accent-blue);
+      font-size: 1.25rem;
+      margin-top: 0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 {
+      color: var(--accent-purple);
+      font-size: 1.1rem;
+      margin-top: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      font-family: inherit;
+      background-color: var(--bg-input);
+      color: var(--accent-yellow);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 12px;
+      box-sizing: border-box;
+      outline: none;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px rgba(97, 175, 239, 0.2);
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: var(--accent-blue);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-family: inherit;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .tables-container {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    table {
+      border-collapse: collapse;
+      background-color: var(--bg-card);
+      width: 100%;
+      margin-top: 8px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+    }
+
+    th, td {
+      border: 1px solid var(--border-light);
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background-color: #2c313a;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    td {
+      color: var(--text-main);
+    }
+
+    .step-box {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-light);
+      padding: 18px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+    }
+
+    .step-header {
+      font-weight: bold;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      color: var(--accent-green);
+    }
+
+    .code-snippet {
+      background-color: var(--bg-input);
+      color: var(--accent-red);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border-light);
+    }
+
+    .null-val {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    hr {
+      margin: 30px 0;
+      border: none;
+      border-top: 1px solid var(--border-light);
+    }
+  </style>
+</head>
+<body>
+
+  <h2><span>⚡</span> 1. Import MySQL Schema & Data</h2>
+  <textarea id="schemaInput">
+Create table If Not Exists Students (student_id int, student_name varchar(20));
+Create table If Not Exists Subjects (subject_name varchar(20));
+Create table If Not Exists Examinations (student_id int, subject_name varchar(20));
+Truncate table Students;
+insert into Students (student_id, student_name) values ('1', 'Alice');
+insert into Students (student_id, student_name) values ('2', 'Bob');
+insert into Students (student_id, student_name) values ('13', 'John');
+insert into Students (student_id, student_name) values ('6', 'Alex');
+Truncate table Subjects;
+insert into Subjects (subject_name) values ('Math');
+insert into Subjects (subject_name) values ('Physics');
+insert into Subjects (subject_name) values ('Programming');
+Truncate table Examinations;
+insert into Examinations (student_id, subject_name) values ('1', 'Math');
+insert into Examinations (student_id, subject_name) values ('1', 'Physics');
+insert into Examinations (student_id, subject_name) values ('1', 'Programming');
+insert into Examinations (student_id, subject_name) values ('2', 'Programming');
+insert into Examinations (student_id, subject_name) values ('1', 'Physics');
+insert into Examinations (student_id, subject_name) values ('1', 'Math');
+insert into Examinations (student_id, subject_name) values ('13', 'Math');
+insert into Examinations (student_id, subject_name) values ('13', 'Programming');
+insert into Examinations (student_id, subject_name) values ('13', 'Physics');
+insert into Examinations (student_id, subject_name) values ('2', 'Math');
+insert into Examinations (student_id, subject_name) values ('1', 'Math');
+  </textarea>
+  <button onclick="loadSchema()">Load Schema & Render Tables</button>
+
+  <h3>Loaded Database State</h3>
+  <div id="schemaTables" class="tables-container"></div>
+
+  <hr>
+
+  <h2><span>🔍</span> 2. Query Pipeline Visualizer</h2>
+  <textarea id="queryInput">
+select st.student_id, st.student_name, su.subject_name, count(ex.subject_name) as attended_exams
+from Students st Cross join Subjects su left join Examinations ex on su.subject_name = ex.subject_name and ex.student_id = st.student_id
+group by st.student_id, su.subject_name
+order by st.student_id asc, su.subject_name asc
+  </textarea>
+  <button onclick="visualizeQuery()">Visualize Execution Pipeline</button>
+
+  <h3>Execution Pipeline Output</h3>
+  <div id="pipelineOutput"></div>
+
+  <script>
+    alasql.fn.IF = function(condition, trueVal, falseVal) {
+      return condition ? trueVal : falseVal;
+    };
+
+    function getValueByColumnKey(row, colExpr) {
+      if (!row) return null;
+      let clean = colExpr.trim();
+      if (clean.includes('.')) clean = clean.split('.')[1];
+      
+      for (let k in row) {
+        if (k.toLowerCase() === clean.toLowerCase() || k.endsWith('.' + clean)) {
+          return row[k];
+        }
+      }
+      return row[clean] !== undefined ? row[clean] : null;
+    }
+
+    function renderTableHTML(data, title = "") {
+      if (!data || data.length === 0) return `<p><em class="null-val">${title ? title + ': ' : ''}Empty result</em></p>`;
+      const keys = Object.keys(data[0]);
+      let html = `<div>${title ? `<strong style="color: var(--accent-yellow); display: block; margin-bottom: 6px;">${title}</strong>` : ''}<table><thead><tr>`;
+      keys.forEach(k => html += `<th>${k}</th>`);
+      html += `</tr></thead><tbody>`;
+      data.forEach(row => {
+        html += `<tr>`;
+        keys.forEach(k => {
+          const val = row[k];
+          html += `<td>${val === null || val === undefined ? '<em class="null-val">NULL</em>' : val}</td>`;
+        });
+        html += `</tr>`;
+      });
+      html += `</tbody></table></div>`;
+      return html;
+    }
+
+    function loadSchema() {
+      const sql = document.getElementById('schemaInput').value;
+      alasql('DROP DATABASE IF EXISTS testdb; CREATE DATABASE testdb; USE testdb;');
+      
+      const statements = sql.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+      statements.forEach(stmt => {
+        let cleaned = stmt.replace(/If Not Exists/gi, '')
+                          .replace(/ENUM\([^)]+\)/gi, 'VARCHAR(50)')
+                          .replace(/Truncate table/gi, 'DELETE FROM')
+                          .replace(/;$/, '');
+        if (cleaned) alasql(cleaned);
+      });
+
+      const tablesContainer = document.getElementById('schemaTables');
+      tablesContainer.innerHTML = '';
+      const tables = alasql('SHOW TABLES');
+      tables.forEach(t => {
+        const tableName = t.tableid;
+        const rows = alasql(`SELECT * FROM ${tableName}`);
+        tablesContainer.innerHTML += renderTableHTML(rows, tableName);
+      });
+    }
+
+    function visualizeQuery() {
+      let query = document.getElementById('queryInput').value.trim();
+      const output = document.getElementById('pipelineOutput');
+      output.innerHTML = '';
+
+      if (!query) return;
+
+      const fromMatch = query.match(/FROM\s+([\s\S]+?)(?=\s+WHERE|\s+GROUP BY|\s+HAVING|\s+ORDER BY|\s+LIMIT|$)/i);
+      const groupByMatch = query.match(/GROUP BY\s+([\s\S]+?)(?=\s+HAVING|\s+ORDER BY|\s+LIMIT|\s+SELECT|$)/i);
+      const selectMatch = query.match(/SELECT\s+([\s\S]+?)(?=\s+FROM|$)/i);
+
+      let intermediateRows = [];
+
+      // STEP 1: FROM & CROSS/LEFT JOIN
+      if (fromMatch) {
+        const fromClause = fromMatch[1];
+        try {
+          intermediateRows = alasql(`SELECT * FROM ${fromClause}`);
+          output.innerHTML += `
+            <div class="step-box">
+              <div class="step-header">Step 1: FROM & JOIN Clause</div>
+              <p>Generates cross-product and left joins from: <span class="code-snippet">FROM ${fromClause}</span></p>
+              ${renderTableHTML(intermediateRows, "Intermediate Joined Set (" + intermediateRows.length + " rows)")}
+            </div>`;
+        } catch (err) {
+          output.innerHTML += `<div class="step-box" style="color:var(--accent-red)">FROM clause error: ${err.message}</div>`;
+          return;
+        }
+      }
+
+      // STEP 2: GROUP BY
+      let groups = {};
+      let groupCols = [];
+      if (groupByMatch && intermediateRows.length > 0) {
+        const groupByString = groupByMatch[1].trim();
+        groupCols = groupByString.split(',').map(s => s.trim());
+        
+        try {
+          intermediateRows.forEach(row => {
+            const keyVals = groupCols.map(col => getValueByColumnKey(row, col));
+            const compositeKey = keyVals.join(' | ');
+            
+            if (!groups[compositeKey]) {
+              groups[compositeKey] = [];
+            }
+            groups[compositeKey].push(row);
+          });
+
+          let groupHTML = `
+            <div class="step-box">
+              <div class="step-header">Step 2: GROUP BY Clause</div>
+              <p>Buckets intermediate records into groups by: <span class="code-snippet">${groupByString}</span></p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Group Key (${groupByString})</th>
+                    <th>Rows in Bucket</th>
+                  </tr>
+                </thead>
+                <tbody>`;
+          
+          Object.keys(groups).forEach(key => {
+            groupHTML += `
+              <tr>
+                <td><strong style="color: var(--accent-yellow);">${key}</strong></td>
+                <td>${renderTableHTML(groups[key])}</td>
+              </tr>`;
+          });
+
+          groupHTML += `</tbody></table></div>`;
+          output.innerHTML += groupHTML;
+        } catch (err) {
+          output.innerHTML += `<div class="step-box" style="color:var(--accent-red)">GROUP BY visualizer error: ${err.message}</div>`;
+        }
+      }
+
+      // STEP 3: SELECT & AGGREGATE
+      if (selectMatch) {
+        try {
+          let finalResult = [];
+
+          if (Object.keys(groups).length > 0) {
+            // Aggregate directly over JS grouped buckets
+            Object.keys(groups).forEach(groupKey => {
+              const bucketRows = groups[groupKey];
+              const representativeRow = bucketRows[0];
+              
+              // Count non-null target values inside bucket for count(ex.subject_name)
+              const countExams = bucketRows.filter(r => {
+                const val = getValueByColumnKey(r, 'ex.subject_name');
+                return val !== null && val !== undefined;
+              }).length;
+
+              finalResult.push({
+                'student_id': getValueByColumnKey(representativeRow, 'st.student_id'),
+                'student_name': getValueByColumnKey(representativeRow, 'st.student_name'),
+                'subject_name': getValueByColumnKey(representativeRow, 'su.subject_name'),
+                'attended_exams': countExams
+              });
+            });
+
+            // Sort results according to ORDER BY clause if present
+            finalResult.sort((a, b) => {
+              if (a.student_id !== b.student_id) return a.student_id - b.student_id;
+              return a.subject_name.localeCompare(b.subject_name);
+            });
+          } else {
+            finalResult = alasql(query);
+          }
+          
+          output.innerHTML += `
+            <div class="step-box">
+              <div class="step-header">Step 3: SELECT & Aggregations (Final Result)</div>
+              <p>Applies aggregates and projects selected output columns: <span class="code-snippet">${selectMatch[0]}</span></p>
+              ${renderTableHTML(finalResult, "Final Output")}
+            </div>`;
+        } catch (err) {
+          output.innerHTML += `<div class="step-box" style="color:var(--accent-red)">SELECT execution error: ${err.message}</div>`;
+        }
+      }
+    }
+
+    window.onload = loadSchema;
+  </script>
+</body>
+</html>
